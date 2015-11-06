@@ -45,7 +45,7 @@ pchisq(fit1$deviance, df=fit1$df.residual, lower.tail=FALSE)
 # and we have strong evidence to reject that hypothesis. 
 # P-value for residual deviance test is 6.941661e-13.
 # So we have strong evidence that our model fits badly.
-# However, the mean is not very large, so the validitiy of the 
+# However, the mean is not very large, so the validity of the 
 # deviance Chi-squared test is in question.
 
 # We may look at the plots of log of response variable vs predictor variables.
