@@ -1,0 +1,95 @@
+######################################################################
+# Reference: Ramsey and Schafer (2nd Ed), 
+# Chapter 22 (Log-Linear Regression for Poisson Counts)
+# 1.Consider the Valve characteristics data 
+# (Display 22.16, Ramsey and Schafer, 2nd Ed).
+# a)Do Problem Number 24, Page 667, using the R function glm.
+# b)Interpret the estimated parameters
+# c)Assess the goodness of fit of the model
+# 2.Repeat 2(a) using the glmnet package and comment on the results.
+#######################################################################
+
+library(Sleuth2)
+
+# 1
+# (a)
+mydata = ex2224
+fit = glm(Failures~System+Operator+Valve+Size+Mode,
+         family="poisson",offset=log(Time), data=mydata)
+summary(fit)
+anova(fit, test="Chisq")
+
+# Model selection via Chi-squared Test
+fit1 = update(fit,.~.-Mode)
+anova(fit1, fit, test="Chisq")
+
+fit2 = update(fit,.~.-Operator)
+anova(fit2, fit, test="Chisq")
+
+fit3 = update(fit1,.~.-Operator)
+anova(fit3, fit1, test="Chisq")
+
+anova(fit1, test="Chisq")
+
+# (b)
+summary(fit1)
+
+# (c)
+# To calculate the p-value for the deviance goodness of fit test 
+# we simply calculate the probability to the right of the deviance 
+# value for the chi-squared distribution on 75 degrees of freedom.
+
+pchisq(fit1$deviance, df=fit1$df.residual, lower.tail=FALSE)
+
+# The null hypothesis is that our model is correctly specified, 
+# and we have strong evidence to reject that hypothesis. 
+# P-value for residual deviance test is 6.941661e-13.
+# So we have strong evidence that our model fits badly.
+# However, the mean is not very large, so the validitiy of the 
+# deviance Chi-squared test is in question.
+
+# We may look at the plots of log of response variable vs predictor variables.
+par(mfrow=c(2,2))
+plot(y=log(mydata$Failures), x=as.numeric(mydata$System),
+     xlab="System", ylab="Log Failures")
+
+plot(y=log(mydata$Failures), x=as.numeric(mydata$Operator),
+     xlab="Operator", ylab="Log Failures")
+
+plot(y=log(mydata$Failures), x=as.numeric(mydata$Size),
+     xlab="Size", ylab="Log Failures")
+
+plot(y=log(mydata$Failures), x=as.numeric(mydata$Valve),
+     xlab="Valve", ylab="Log Failures")
+
+dev.off()
+
+
+# 2
+library(glmnet)
+
+mydata = ex2224
+# To prepare data for glmnet, create dummy variables for categorical data.
+dfrPredictors = as.data.frame(mydata)
+form = paste("~",paste(colnames(dfrPredictors), collapse="+"), sep="")
+dfrTmp = model.frame(dfrPredictors, na.action=na.pass)
+
+# data matrix with dummy variables
+dummy_data = as.matrix(model.matrix(as.formula(form), data=dfrTmp))[,-1]
+
+# predictor matrix with dummy variables
+predictors = dummy_data[,-c(ncol(dummy_data),ncol(dummy_data)-1)]
+
+# Fit an L-1 norm regularized Poisson regression with log(Time) as offset
+fit_reg = glmnet(x=predictors, y=mydata$Failures,
+          family="poisson", offset=log(mydata$Time), alpha=1)
+plot(fit_reg)
+
+# Fit an L-1 norm regularized Poisson regression with log(Time) as offset 
+# using Cross-Validation 
+set.seed(22)
+cvfit = cv.glmnet(x=predictors, y=mydata$Failures, family="poisson",
+                   offset=log(mydata$Time), alpha=1)
+plot(cvfit)
+print(cvfit$lambda.min)
+coef(cvfit, s = cvfit$lambda.min)
