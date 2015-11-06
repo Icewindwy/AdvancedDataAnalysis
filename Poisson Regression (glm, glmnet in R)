@@ -80,12 +80,12 @@ dummy_data = as.matrix(model.matrix(as.formula(form), data=dfrTmp))[,-1]
 # predictor matrix with dummy variables
 predictors = dummy_data[,-c(ncol(dummy_data),ncol(dummy_data)-1)]
 
-# Fit an L-1 norm regularized Poisson regression with log(Time) as offset
+# fit an L-1 norm regularized Poisson regression with log(Time) as offset
 fit_reg = glmnet(x=predictors, y=mydata$Failures,
           family="poisson", offset=log(mydata$Time), alpha=1)
 plot(fit_reg)
 
-# Fit an L-1 norm regularized Poisson regression with log(Time) as offset 
+# fit an L-1 norm regularized Poisson regression with log(Time) as offset 
 # using Cross-Validation 
 set.seed(22)
 cvfit = cv.glmnet(x=predictors, y=mydata$Failures, family="poisson",
