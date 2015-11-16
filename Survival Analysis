@@ -1,0 +1,50 @@
+######################################################################
+# Survival Analysis
+# Consider the colon data in the R package "survival". 
+# It gives adjuvant chemotherapy data for colon cancer. 
+# Levamisole is a low-toxicity compound previously used to treat
+# worm infestations in animals; 5-FU is a moderately toxic
+# (as these things go) chemotherapy agent. 
+# There are two records per person, one for recurrence (etype=1) 
+# and one for death (etype=2). Other important variables include: 
+# rx: Treatment: Obs(ervation), Lev(amisole), Lev(amisole)+5-FU 
+# sex: 1=male 
+# age: in years 
+# time: days until event or censoring 
+# status: censoring status
+######################################################################
+
+library(survival)
+mydata <- colon[(colon$rx %in% c("Lev","Lev+5FU")) & colon$etype==2,]
+
+# 1. Using the Kaplan-Meier method, estimate the survival curve for 
+# each treatment group: Lev(amisole) and Lev(amisole)+5-FU.
+fit <- survfit(Surv(time,status)~rx, data=mydata, type="kaplan-meier")
+summary(fit)
+plot(fit, col=c(1,2), lty=c(1,2),
+     xlab="Time", ylab="Probability of Survival",
+     main="Kaplan-Meier Curve")
+legend(100,0.2,c("Lev","Lev+5FU"), col=c(1,2), lty=c(1,2))
+
+# 2. Estimate the median survival time for each of the two 
+# treatment groups, using the estimated survival curves.
+
+# Median survival is the time at which the survivor function equals 0.5.
+abline(h=0.5)
+print(fit)  
+# In the result, NA means the median is larger than the total time.
+
+# 3. Using the log-rank test, determine whether there is a difference 
+# in survival between the two groups.
+survdiff(Surv(time,status)~rx, data=mydata, rho=0)
+# There is a difference between the two groups since the p-value is small.
+
+# 4. Using a Cox proportional hazards model, estimate the hazard rate 
+# for Levamisole relative to 5-FU, adjusting for Age and Sex.
+mydata$rx <- (mydata$rx=="Lev")*1
+cox.fit <- coxph(Surv(time,status)~rx + strata(age) + strata(sex),
+                 data=mydata)
+
+
+# 5. Give a 95% confidence interval for the hazard rate in 4.
+summary(cox.fit) # 95% confidence interval is [1.102, 1.877].
